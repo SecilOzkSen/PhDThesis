@@ -2,16 +2,18 @@ name: cafa5-protein-prediction
 channels:
   - defaults
   - conda-forge
+  - pytorch
 dependencies:
   - python=3.10
   - pip
-  - numpy
   - pandas
   - scikit-learn
   - tqdm
   - pip:
+      - numpy<2
       - torch==2.1.0
       - torchvision==0.16.0
       - torchaudio==2.1.0
       - transformers
       - kaggle
+      - bio

@@ -1,13 +1,16 @@
 import os
 import torch
 class DatasetConfig:
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     DATA_DIR = os.path.join(ROOT_DIR, "dataset")
-    SEQ_FILE = os.path.join(DATA_DIR, "train_sequences.csv")
-    TERM_FILE = os.path.join(DATA_DIR, "train_terms.csv")
+    SEQ_FILE = os.path.join(DATA_DIR, "Train/train_sequences.fasta")
+    TERM_FILE = os.path.join(DATA_DIR, "Train/train_terms.tsv")
+    PROTBERT_EMBEDDING_PATH = os.path.join(DATA_DIR, "protbert_embeddings.npy")
+    LABELS_PATH = os.path.join(DATA_DIR, "train_labels.npy")
+    GO_TERM_PATH = os.path.join(DATA_DIR, "go_terms.npy")
 
     # Training hyperparameters
-    BATCH_SIZE = 32
+    BATCH_SIZE = 64
     EPOCHS = 10
     LR = 1e-4
 

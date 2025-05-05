@@ -3,19 +3,19 @@ from config.config import PLM_Config
 
 class CAFA5_Preprocessor:
 
-    def __init__(self, plm_name='ProtBERT'):
+    def __init__(self, plm_name='Rostlab/prot_bert'):
         self.plm_name = plm_name.lower()
-        self.valid_amino_acids = self.get_valid_amino_acids(plm_name)
-        self.max_seq_len = self.get_max_seq_len(plm_name)
+        self.valid_amino_acids = self.get_valid_amino_acids()
+        self.max_seq_len = self.get_max_seq_len()
 
     def get_valid_amino_acids(self):
-        if self.plm_name== 'protbert':
+        if self.plm_name== 'rostlab/prot_bert':
             return PLM_Config.VALID_AMINO_ACIDS_PROTBERT
     def get_max_seq_len(self):
-        if self.plm_name == 'protbert':
+        if self.plm_name == 'rostlab/prot_bert':
             return PLM_Config.MAX_SEQ_LEN_PROTBERT
     def format_by_PLM(self, sequence):
-        if self.plm_name == 'protbert':
+        if self.plm_name == 'rostlab/prot_bert':
             return self.format_for_protbert(sequence)
 
     def clean_sequence(self, sequence:str) -> str:
@@ -28,7 +28,8 @@ class CAFA5_Preprocessor:
         cleaned = ''.join([aa for aa in sequence if aa in self.valid_amino_acids])
         return cleaned
 
-    def format_for_protbert(self, sequence:str) -> str:
+    @staticmethod
+    def format_for_protbert(sequence:str) -> str:
         '''
         Format amino acid sequence for ProtBERT input.
         Adds whitespace between each residue (token).
