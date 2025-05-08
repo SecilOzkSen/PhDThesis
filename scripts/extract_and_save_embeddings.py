@@ -20,7 +20,7 @@ def extract_and_save_embeddings_protbert():
     print(f"Total Sequences:{len(sequences)}")
     print("Initializing ProtBERT embedder...")
     embedder = ProtBERTEmbedder(model_path=local_dir)
-    embeddings = embedder.get_embeddings(sequences, batch_size=DatasetConfig.BATCH_SIZE)
+    embeddings = embedder.get_embeddings(sequences[:1000], batch_size=DatasetConfig.BATCH_SIZE)
 
     print("Converting and saving embeddings...")
     embeddings_np = torch.stack(embeddings)
