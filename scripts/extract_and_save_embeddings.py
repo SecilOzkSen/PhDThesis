@@ -10,6 +10,8 @@ from embedding.protbert_embedding import ProtBERTEmbedder
 from embedding.esm1b_embedder import ESM1bEmbedder
 from config.config import PLM_Config
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 def extract_and_save_embeddings(model_name):
     print(torch.cuda.is_available())
     print("Loading sequences and terms....")
@@ -37,7 +39,8 @@ def extract_and_save_embeddings(model_name):
 
     print("Saving Embeddings....")
     os.makedirs("dataset", exist_ok=True)
-    np.save(embedding_path, torch.stack(embeddings).numpy())
+    embeddings_cpu = [e.cpu() for e in embeddings]
+    np.save(embedding_path, torch.stack(embeddings_cpu).numpy())
 
     print("Saving labels....")
     print("🏷️  Saving labels...")
