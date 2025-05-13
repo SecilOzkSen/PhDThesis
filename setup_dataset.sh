@@ -3,7 +3,7 @@
 # Constants
 ZIP_NAME="cafa-5-protein-function-prediction.zip"
 ZIP_PATH="dataset/$ZIP_NAME"
-TARGET_DIR="."
+TARGET_DIR="dataset/"
 
 # Kaggle competition name
 KAGGLE_COMPETITION="cafa-5-protein-function-prediction"
