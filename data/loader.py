@@ -1,9 +1,9 @@
 import pandas as pd
-from config.config import DatasetConfig
+from config.config import DatasetConfig, PLM_Config
 from Bio import SeqIO
 
 
-def load_sequences() -> pd.DataFrame:
+def load_sequences(model_name = "protbert") -> pd.DataFrame:
     '''
     Load protein sequences from a FASTA file into a pandas DataFrame.
     :return: Pandas dataframe with columns 'sequence_id' and 'sequence'
@@ -11,9 +11,14 @@ def load_sequences() -> pd.DataFrame:
 
     records = list(SeqIO.parse(DatasetConfig.SEQ_FILE, "fasta"))
     data = []
+    upper = False
+    if model_name == PLM_Config.PROTBERT:
+        upper = True
     for record in records:
         sequence_id = record.id
-        sequence = str(record.seq).strip().upper()
+        sequence = str(record.seq).strip()
+        if upper:
+            sequence = sequence.upper()
         data.append((sequence_id, sequence))
     df = pd.DataFrame(data, columns=['sequence_id', 'sequence'])
     return df
@@ -39,8 +44,8 @@ def merge_sequences_and_terms(sequences: pd.DataFrame, terms: pd.DataFrame) -> p
     return merged
 
 
-def load_cafa5_dataframe() -> pd.DataFrame:
-    sequences = load_sequences()
+def load_cafa5_dataframe(model_name = "protbert") -> pd.DataFrame:
+    sequences = load_sequences(model_name)
     terms = load_terms()
     merged = merge_sequences_and_terms(sequences, terms)
     return merged

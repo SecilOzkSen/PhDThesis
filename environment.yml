@@ -17,3 +17,4 @@ dependencies:
       - transformers
       - kaggle
       - bio
+      - fair-esm

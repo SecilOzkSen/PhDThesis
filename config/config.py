@@ -6,6 +6,7 @@ class DatasetConfig:
     SEQ_FILE = os.path.join(DATA_DIR, "Train/train_sequences.fasta")
     TERM_FILE = os.path.join(DATA_DIR, "Train/train_terms.tsv")
     PROTBERT_EMBEDDING_PATH = os.path.join(DATA_DIR, "protbert_embeddings.npy")
+    ESM1B_EMBEDDING_PATH = os.path.join(DATA_DIR, "esm1b_embeddings.npy")
     LABELS_PATH = os.path.join(DATA_DIR, "train_labels.npy")
     GO_TERM_PATH = os.path.join(DATA_DIR, "go_terms.npy")
 
@@ -26,5 +27,7 @@ class DatasetConfig:
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PLM_Config:
+    PROTBERT = "protbert"
+    ESM1B = "esm1b"
     VALID_AMINO_ACIDS_PROTBERT = set("ACDEFGHIKLMNPQRSTVWY")
     MAX_SEQ_LEN_PROTBERT = 1024
