@@ -8,7 +8,7 @@ from huggingface_hub import snapshot_download
 from data.loader import load_cafa5_dataframe
 from embedding.protbert_embedding import ProtBERTEmbedder
 from embedding.esm1b_embedder import ESM1bEmbedder
-from config.config import PLM_Config
+from config.config import PLM_Config, ModelConfig
 import traceback
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -36,7 +36,7 @@ def extract_and_save_embeddings(model_name):
         raise ValueError("Unsupported Model Type!!")
 
     print("Extracting Embeddings....")
-    embeddings = embedder.get_embeddings(sequences, batch_size=DatasetConfig.BATCH_SIZE)
+    embeddings = embedder.get_embeddings(sequences, batch_size=ModelConfig.BATCH_SIZE)
 
     print("Saving Embeddings....")
     os.makedirs("dataset", exist_ok=True)
@@ -110,5 +110,5 @@ def extract_and_save_embeddings_protbert():
 
 if __name__ == "__main__":
     os.makedirs(DatasetConfig.DATA_DIR, exist_ok=True)
-    extract_and_save_embeddings("protbert")
+    extract_and_save_embeddings(PLM_Config.ESM1B)
     #extract_and_save_embeddings_protbert()
