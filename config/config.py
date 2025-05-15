@@ -9,25 +9,24 @@ class DatasetConfig:
     ESM1B_EMBEDDING_PATH = os.path.join(DATA_DIR, "esm1b_embeddings.npy")
     LABELS_PATH = os.path.join(DATA_DIR, "train_labels.npy")
     GO_TERM_PATH = os.path.join(DATA_DIR, "go_terms.npy")
-
-    # Training hyperparameters
-    BATCH_SIZE = 64
-    EPOCHS = 10
-    LR = 1e-4
-
-    # Embedding
-    EMBEDDING_DIM = 1024
-
-    # Model
-    HIDDEN_DIM_1 = 512
-    HIDDEN_DIM_2 = 256
-    DROPOUT = 0.3
-
-    # Device
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    SEQ_IDS_PATH = os.path.join(DATA_DIR, "seq_ids.npy")
+    PROTBERT_TEST_EMBEDDINGS_PATH = os.path.join(DATA_DIR, "protbert_test_embeddings.npy")
 
 class PLM_Config:
     PROTBERT = "protbert"
     ESM1B = "esm1b"
     VALID_AMINO_ACIDS_PROTBERT = set("ACDEFGHIKLMNPQRSTVWY")
     MAX_SEQ_LEN_PROTBERT = 1024
+
+class ModelConfig:
+    # Training hyperparameters
+    TRAIN_TEST_SPLIT = 0.1
+    LR = 1e-4
+    EPOCHS = 1
+    BATCH_SIZE = 32
+    HIDDEN_DIMS = [512, 256]
+    DROPOUT = 0.3
+    SAVE_PATH = "saved_models/protbert_mlp_best_model.pt"
+
+    # Device
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

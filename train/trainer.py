@@ -3,11 +3,12 @@ from torch import nn
 from torch.utils.data import DataLoader
 from typing import Optional
 from eval.evaluator import compute_aupr, compute_fmax
+from torch.optim import Optimizer
 
 class Trainer:
     def __init__(self,
                  model: nn.Module,
-                 optimizer: torch.optim.optimizer,
+                 optimizer: Optimizer,
                  loss_fn: Optional[nn.Module] = None,
                  device: Optional[str] = None):
         self.model = model
@@ -58,6 +59,17 @@ class Trainer:
 
         avg_loss = total_loss / len(data_loader)
         return {'val_loss': avg_loss, 'fmax': f_max, 'aupr': aupr}
+
+    def predict(self, model, test_loader):
+        model.eval()
+        all_outputs = []
+        with torch.no_grad():
+            for inputs, _ in test_loader:
+                inputs = inputs.to(self.device)
+                outputs = model(inputs)
+                all_outputs.append(outputs.cpu())
+
+        return torch.cat(all_outputs).numpy()
 
 
 

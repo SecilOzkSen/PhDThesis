@@ -9,6 +9,7 @@ from data.loader import load_cafa5_dataframe
 from embedding.protbert_embedding import ProtBERTEmbedder
 from embedding.esm1b_embedder import ESM1bEmbedder
 from config.config import PLM_Config
+import traceback
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -42,12 +43,25 @@ def extract_and_save_embeddings(model_name):
     embeddings_cpu = [e.cpu() for e in embeddings]
     np.save(embedding_path, torch.stack(embeddings_cpu).numpy())
 
-    print("Saving labels....")
-    print("🏷️  Saving labels...")
+    print("Binarizing and saving labels....")
     mlb = MultiLabelBinarizer()
     label_matrix = mlb.fit_transform(labels)
-    np.save(DatasetConfig.LABELS_PATH, label_matrix)
-    np.save(DatasetConfig.GO_TERM_PATH, mlb.classes_)
+    try:
+        # Daha küçük boyut için dtype dönüşümü
+        label_matrix = label_matrix.astype(np.uint8)
+
+        # Önce .npy olarak dene
+        np.save(DatasetConfig.LABEL_PATH, label_matrix)
+        print(f"✅ Labels saved to {DatasetConfig.LABEL_PATH} (.npy)")
+
+    except Exception as e:
+        print("⚠️ .npy save failed, falling back to .npz")
+        traceback.print_exc()
+
+        # Fallback: .npz ile sıkıştırılmış güvenli kayıt
+        fallback_path = DatasetConfig.LABEL_PATH.replace(".npy", ".npz")
+        np.savez_compressed(fallback_path, labels=label_matrix)
+        print(f"✅ Labels saved to {fallback_path} (.npz fallback)")
     print("Embeddings and labels saved!")
     print(f"DONE! saved embeddings and the labels to {embedding_path} folder.")
 
@@ -62,17 +76,32 @@ def extract_and_save_embeddings_protbert():
     labels = df["term"].tolist()
     print(f"Total Sequences:{len(sequences)}")
     print("Initializing ProtBERT embedder...")
-    embedder = ProtBERTEmbedder(model_path=local_dir)
-    embeddings = embedder.get_embeddings(sequences, batch_size=DatasetConfig.BATCH_SIZE)
+ #   embedder = ProtBERTEmbedder(model_path=local_dir)
+ #   embeddings = embedder.get_embeddings(sequences, batch_size=DatasetConfig.BATCH_SIZE)
 
     print("Converting and saving embeddings...")
-    embeddings_np = torch.stack(embeddings)
-    np.save(DatasetConfig.PROTBERT_EMBEDDING_PATH, embeddings_np.numpy())
+  #  embeddings_np = torch.stack(embeddings)
+  #  np.save(DatasetConfig.PROTBERT_EMBEDDING_PATH, embeddings_np.numpy())
 
     print("Binarizing and saving labels....")
     mlb = MultiLabelBinarizer()
     label_matrix = mlb.fit_transform(labels)
-    np.save(DatasetConfig.LABELS_PATH, label_matrix)
+    try:
+        # Daha küçük boyut için dtype dönüşümü
+        label_matrix = label_matrix.astype(np.uint8)
+
+        # Önce .npy olarak dene
+        np.save(DatasetConfig.LABELS_PATH, label_matrix)
+        print(f"✅ Labels saved to {DatasetConfig.LABELS_PATH} (.npy)")
+
+    except Exception as e:
+        print("⚠️ .npy save failed, falling back to .npz")
+       # traceback.print_exc()
+
+        # Fallback: .npz ile sıkıştırılmış güvenli kayıt
+        fallback_path = DatasetConfig.LABELS_PATH.replace(".npy", ".npz")
+        np.savez_compressed(fallback_path, labels=label_matrix)
+        print(f"✅ Labels saved to {fallback_path} (.npz fallback)")
 
     print("Saving go term classes....")
     np.save(DatasetConfig.GO_TERM_PATH, mlb.classes_)
@@ -81,4 +110,5 @@ def extract_and_save_embeddings_protbert():
 
 if __name__ == "__main__":
     os.makedirs(DatasetConfig.DATA_DIR, exist_ok=True)
-    extract_and_save_embeddings("esm1b")
+    extract_and_save_embeddings("protbert")
+    #extract_and_save_embeddings_protbert()
