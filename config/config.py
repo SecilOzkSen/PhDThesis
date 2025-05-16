@@ -22,7 +22,7 @@ class ModelConfig:
     # Training hyperparameters
     TRAIN_TEST_SPLIT = 0.1
     LR = 1e-4
-    EPOCHS = 1
+    EPOCHS = 50
     BATCH_SIZE = 32
     HIDDEN_DIMS = [512, 256]
     DROPOUT = 0.3

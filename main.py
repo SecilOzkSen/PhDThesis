@@ -9,6 +9,7 @@ from data.protein_dataset import ProteinDataset
 from model.mlp import MLP
 from train.trainer import Trainer
 from sklearn.model_selection import train_test_split
+from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 def load_best_model(model, path, device):
     model.load_state_dict(torch.load(path, map_location=device))
@@ -32,7 +33,12 @@ def main_mlp():
         raise FileNotFoundError("Neither .npy nor .npz label file found.")
 
     # Train / val split
-    X_train, X_val, Y_train, Y_val = train_test_split(embeddings, labels, test_size=ModelConfig.TRAIN_TEST_SPLIT, random_state=42)
+    # Stratified K-Fold (first fold only)
+    mskf = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    for train_index, val_index in mskf.split(embeddings, labels):
+        X_train, X_val = embeddings[train_index], embeddings[val_index]
+        Y_train, Y_val = labels[train_index], labels[val_index]
+        break
 
     train_dataset = ProteinDataset(X_train, Y_train)
     val_dataset = ProteinDataset(X_val, Y_val)
@@ -61,8 +67,8 @@ def main_mlp():
 
         print(f"Train Loss {train_loss:.4f} | Val Loss {val_metrics['val_loss']:.4f}")
 
-        if val_metrics['f_max'] > best_fmax:
-            best_fmax = val_metrics['f_max']
+        if val_metrics['fmax'] > best_fmax:
+            best_fmax = val_metrics['fmax']
             torch.save(model.state_dict(), ModelConfig.SAVE_PATH)
             print("Best Model Saved. Fmax improved.")
 
@@ -75,7 +81,7 @@ def main_mlp():
         sequence_ids=np.load(DatasetConfig.SEQ_IDS_PATH),
         go_terms=np.load(DatasetConfig.GO_TERM_PATH),
         save_path="cafa_outputs/test_predictions.pred",
-        batch_size=32,
+        batch_size=ModelConfig.BATCH_SIZE,
         device=ModelConfig.DEVICE
     )
 

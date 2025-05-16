@@ -18,3 +18,4 @@ dependencies:
       - kaggle
       - bio
       - fair-esm
+      - iterative-stratification
