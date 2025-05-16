@@ -36,7 +36,7 @@ def extract_and_save_embeddings(model_name, batch_size):
         raise ValueError("Unsupported Model Type!!")
 
     print("Extracting Embeddings....")
-    embeddings = embedder.get_embeddings(sequences, batch_size=batch_size)
+    embeddings = embedder.get_embeddings(sequences, strategy="truncate", batch_size=1)
 
     print("Saving Embeddings....")
     os.makedirs("dataset", exist_ok=True)
