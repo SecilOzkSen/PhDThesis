@@ -22,48 +22,41 @@ class ESM1bEmbedder:
 
         for i in tqdm(range(0, len(sequences), batch_size)):
             batch_seqs = sequences[i:i+batch_size]
-            batch_labels = [f"seq{i+j}" for j in range(len(batch_seqs))]
-            batch_tuples = list(zip(batch_labels, batch_seqs))
+            all_embs = []
 
-            try:
-                all_embs = []
+            for j, seq in enumerate(batch_seqs):
+                label = f"seq{i+j}"
+                seq = seq.strip()
 
-                for label, seq in batch_tuples:
-                    seq = seq.strip()
+                if strategy == "truncate":
+                    seq = seq[:max_len]  # güvenli truncate
+                    tokens = self.batch_converter([(label, seq)])[2].to(self.device)
+                    with torch.no_grad():
+                        out = self.model(tokens, repr_layers=[33], return_contacts=False)
+                        rep = out["representations"][33][0, 1:len(seq)+1]
+                        emb = rep.mean(dim=0)
+                    all_embs.append(emb.cpu())
 
-                    if strategy == "truncate":
-                        truncated_seq = seq[:max_len]
-                        tokens = self.batch_converter([(label, truncated_seq)])[2].to(self.device)
+                elif strategy == "segment":
+                    segment_embs = []
+                    for s in range(0, len(seq), max_len):
+                        segment = seq[s:s+max_len]
+                        if len(segment) == 0:
+                            continue
+                        tokens = self.batch_converter([(label, segment)])[2].to(self.device)
                         with torch.no_grad():
                             out = self.model(tokens, repr_layers=[33], return_contacts=False)
-                            rep = out["representations"][33][0, 1:len(truncated_seq) + 1]
-                            emb = rep.mean(dim=0)
+                            rep = out["representations"][33][0, 1:len(segment)+1]
+                            segment_embs.append(rep.mean(dim=0))
+                    if segment_embs:
+                        emb = torch.stack(segment_embs).mean(dim=0)
                         all_embs.append(emb.cpu())
+                    else:
+                        print(f"❌ Empty segment embeddings for sequence {label}")
 
-                    elif strategy == "segment":
-                        segment_embs = []
-                        for s in range(0, len(seq), max_len):
-                            segment = seq[s:s + max_len]
-                            if len(segment) == 0:
-                                continue
-                            tokens = self.batch_converter([(label, segment)])[2].to(self.device)
-                            with torch.no_grad():
-                                out = self.model(tokens, repr_layers=[33], return_contacts=False)
-                                rep = out["representations"][33][0, 1:len(segment) + 1]
-                                segment_embs.append(rep.mean(dim=0))
-                        if segment_embs:
-                            emb = torch.stack(segment_embs).mean(dim=0)
-                            all_embs.append(emb.cpu())
-                        else:
-                            print(f"❌ Empty segment embeddings for sequence {label}")
-
-                embeddings.extend(all_embs)
-                torch.cuda.empty_cache()
-                gc.collect()
-
-            except Exception as e:
-                print(f"❌ Skipping batch {i}-{i+batch_size} due to error: {e}")
-                continue
+            embeddings.extend(all_embs)
+            torch.cuda.empty_cache()
+            gc.collect()
 
         return embeddings
 
