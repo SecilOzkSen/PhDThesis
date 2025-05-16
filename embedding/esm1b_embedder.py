@@ -30,32 +30,32 @@ class ESM1bEmbedder:
 
                 for label, seq in batch_tuples:
                     seq = seq.strip()
-                    if len(seq) <= max_len or strategy == "truncate":
+
+                    if strategy == "truncate":
                         truncated_seq = seq[:max_len]
                         tokens = self.batch_converter([(label, truncated_seq)])[2].to(self.device)
                         with torch.no_grad():
                             out = self.model(tokens, repr_layers=[33], return_contacts=False)
-                            rep = out["representations"][33][0, 1:len(truncated_seq)+1]
+                            rep = out["representations"][33][0, 1:len(truncated_seq) + 1]
                             emb = rep.mean(dim=0)
                         all_embs.append(emb.cpu())
 
                     elif strategy == "segment":
                         segment_embs = []
                         for s in range(0, len(seq), max_len):
-                            segment = seq[s:s+max_len]
+                            segment = seq[s:s + max_len]
                             if len(segment) == 0:
                                 continue
                             tokens = self.batch_converter([(label, segment)])[2].to(self.device)
                             with torch.no_grad():
                                 out = self.model(tokens, repr_layers=[33], return_contacts=False)
-                                rep = out["representations"][33][0, 1:len(segment)+1]
+                                rep = out["representations"][33][0, 1:len(segment) + 1]
                                 segment_embs.append(rep.mean(dim=0))
                         if segment_embs:
                             emb = torch.stack(segment_embs).mean(dim=0)
                             all_embs.append(emb.cpu())
                         else:
                             print(f"❌ Empty segment embeddings for sequence {label}")
-                            continue
 
                 embeddings.extend(all_embs)
                 torch.cuda.empty_cache()
