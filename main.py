@@ -34,6 +34,7 @@ def main_mlp():
 
     # Train / val split
     # Stratified K-Fold (first fold only)
+    print("Loading labels are done!")
     mskf = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     for train_index, val_index in mskf.split(embeddings, labels):
         X_train, X_val = embeddings[train_index], embeddings[val_index]
