@@ -8,8 +8,8 @@ from config.config import DatasetConfig, ModelConfig
 from data.protein_dataset import ProteinDataset
 from model.mlp import MLP
 from train.trainer import Trainer
-from sklearn.model_selection import train_test_split
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+import time
 
 def load_best_model(model, path, device):
     model.load_state_dict(torch.load(path, map_location=device))
@@ -32,14 +32,17 @@ def main_mlp():
     else:
         raise FileNotFoundError("Neither .npy nor .npz label file found.")
 
-    # Train / val split
-    # Stratified K-Fold (first fold only)
-    print("Loading labels are done!")
+    embeddings = np.array(embeddings)
+    labels = np.array(labels)
+
+
+    start = time.time()
     mskf = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     for train_index, val_index in mskf.split(embeddings, labels):
         X_train, X_val = embeddings[train_index], embeddings[val_index]
         Y_train, Y_val = labels[train_index], labels[val_index]
         break
+    print("Split done in", time.time() - start, "seconds")
 
     train_dataset = ProteinDataset(X_train, Y_train)
     val_dataset = ProteinDataset(X_val, Y_val)
