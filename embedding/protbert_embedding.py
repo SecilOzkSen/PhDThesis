@@ -4,11 +4,15 @@ from data.preprocessing import CAFA5_Preprocessor
 from config.config import PLM_Config
 from typing import List
 from tqdm import tqdm
-class ProtBERTEmbedder:
+from embedding.base_embedder import BaseEmbedder
+class ProtBERTEmbedder(BaseEmbedder):
     def __init__(self,
                  model_name: str = 'Rostlab/prot_bert',
                  model_path: str = None,
-                 device: str = None):
+                 device: str = None,
+                 truncation_strategy = "truncate"):
+        super().__init__(device=device)
+        self.truncation_strategy = truncation_strategy
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print("Using device:", self.device)
         if model_path is None:
@@ -20,41 +24,43 @@ class ProtBERTEmbedder:
         self.cafa5_preprocessor = CAFA5_Preprocessor(plm_name=model_name)
         self.model.eval()
 
-    def get_embedding(self, sequence:str) -> torch.Tensor: # for single protein
-        '''
-        Returns the mean pooled embedding for a single protein sequence
-        '''
-        formatted_sequence = self.cafa5_preprocessor.preprocess_sequence(sequence)
-        tokens = self.tokenizer(formatted_sequence,
-                                return_tensors='pt',
-                                padding=True,
-                                truncation=True,
-                                max_length=PLM_Config.MAX_SEQ_LEN_PROTBERT)
-        input_ids = tokens['input_ids'].to(self.device)
-        attention_mask = tokens['attention_mask'].to(self.device)
-        with torch.no_grad():
-            outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-            embedding = outputs.last_hidden_state.mean(dim=1) # we are not doing inference we are using embeddings only!
-        return embedding.squeeze.cpu()
+    def encode_batch(self, labels: list[str], sequences: list[str]):
+        truncate = True if self.truncation_strategy == "truncate" else False
+        formatted = [self.cafa5_preprocessor.preprocess_sequence(seq, clean=True, truncate=truncate) for seq in sequences]
+        tokens = self.tokenizer(
+            formatted,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=PLM_Config.MAX_SEQ_LEN
+        )
+        tokens = {k: v.to(self.device) for k, v in tokens.items()}
 
-    def get_embeddings(self, sequences: List[str], batch_size:int = 128) -> List[torch.Tensor]:
+        with torch.no_grad():
+            out = self.model(**tokens)
+            reps = out.last_hidden_state
+
+        attention_mask = tokens["attention_mask"]
+        token_reps_list = []
+
+        for i, seq in enumerate(sequences):
+            seq_len = attention_mask[i].sum().item() - 2  # exclude CLS and SEP
+            rep = reps[i, 1:1 + seq_len]  # skip CLS and SEP
+            token_reps_list.append(rep)
+
+        return token_reps_list, [None] * len(token_reps_list)  # Always return dummy attn
+
+
+    def get_embeddings(self, sequences, batch_size=1,  strategy="mean", max_len=1024, use_watti=False):
         embeddings = []
         for i in tqdm(range(0, len(sequences), batch_size)):
-            batch_seqs = sequences[i:i+batch_size]
-            formatted = [self.cafa5_preprocessor.preprocess_sequence(seq) for seq in batch_seqs]
+            batch_seqs = sequences[i:i + batch_size]
+            labels = [f"seq{i + j}" for j in range(len(batch_seqs))]
+            token_reps_list, _ = self.encode_batch(labels, batch_seqs)
 
-            tokens = self.tokenizer(formatted,
-                                    return_tensors='pt',
-                                    padding=True,
-                                    truncation=True,
-                                    max_length=PLM_Config.MAX_SEQ_LEN_PROTBERT)
-            input_ids = tokens['input_ids'].to(self.device)
-            attention_mask = tokens['attention_mask'].to(self.device)
-            with torch.no_grad():
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                pooled = outputs.last_hidden_state.mean(dim = 1) # mean pooling the embeddings.
-            embeddings.extend(pooled.cpu())
+            for rep in token_reps_list:
+                emb = rep.mean(dim=0)
+                embeddings.append(emb.cpu())
 
         return embeddings
-
 

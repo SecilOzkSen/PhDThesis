@@ -1,9 +1,8 @@
 import os
 import torch
-import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
 from config.config import DatasetConfig
-from huggingface_hub import snapshot_download
+import pickle
 
 from data.loader import load_cafa5_dataframe
 from embedding.protbert_embedding import ProtBERTEmbedder
@@ -13,12 +12,13 @@ import traceback
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-def extract_and_save_embeddings(model_name, batch_size):
+def extract_and_save_embeddings(model_name, batch_size, use_watti=False):
     print(torch.cuda.is_available())
     print("Loading sequences and terms....")
     df = load_cafa5_dataframe(model_name=model_name)
 
     sequences = df["sequence"].tolist()
+    sequence_ids = df["sequence_id"].tolist()
     labels = df["term"].tolist()
 
     print(f"Total sequences: {len(sequences)}")
@@ -30,42 +30,45 @@ def extract_and_save_embeddings(model_name, batch_size):
         embedder = ProtBERTEmbedder()
         embedding_path = DatasetConfig.PROTBERT_EMBEDDING_PATH
     elif model_name == PLM_Config.ESM1B:
-        embedder = ESM1bEmbedder()
+        embedder = ESM1bEmbedder(use_watti=use_watti)
         embedding_path = DatasetConfig.ESM1B_EMBEDDING_PATH
     else:
         raise ValueError("Unsupported Model Type!!")
 
     print("Extracting Embeddings....")
-    embeddings = embedder.get_embeddings(sequences, strategy="truncate", batch_size=1)
+    embeddings = embedder.get_embeddings(sequences,
+                                         strategy="truncate",
+                                         batch_size=batch_size,
+                                         max_len=PLM_Config.MAX_SEQ_LEN)
 
     print("Saving Embeddings....")
     os.makedirs("dataset", exist_ok=True)
-    embeddings_cpu = [e.cpu() for e in embeddings]
-    np.save(embedding_path, torch.stack(embeddings_cpu).numpy())
 
     print("Binarizing and saving labels....")
     mlb = MultiLabelBinarizer()
     label_matrix = mlb.fit_transform(labels)
-    try:
-        # Daha küçük boyut için dtype dönüşümü
-        label_matrix = label_matrix.astype(np.uint8)
 
-        # Önce .npy olarak dene
-        np.save(DatasetConfig.LABEL_PATH, label_matrix)
-        print(f"✅ Labels saved to {DatasetConfig.LABEL_PATH} (.npy)")
+    print("Saving data as .pickle....")
+    os.makedirs("dataset", exist_ok=True)
 
-    except Exception as e:
-        print("⚠️ .npy save failed, falling back to .npz")
-        traceback.print_exc()
+    embedding_data = []
+    for seq_id, seq, emb, label in zip(sequence_ids, sequences, embeddings, label_matrix):
+        embedding_data.append({
+            "sequence_id": seq_id,
+            "sequence": seq,
+            "embedding": emb.cpu(),  # save CPU tensor
+            "label": label  # already numpy array
+        })
 
-        # Fallback: .npz ile sıkıştırılmış güvenli kayıt
-        fallback_path = DatasetConfig.LABEL_PATH.replace(".npy", ".npz")
-        np.savez_compressed(fallback_path, labels=label_matrix)
-        print(f"✅ Labels saved to {fallback_path} (.npz fallback)")
-    print("Embeddings and labels saved!")
-    print(f"DONE! saved embeddings and the labels to {embedding_path} folder.")
+    with open(embedding_path, "wb") as f:
+        pickle.dump(embedding_data, f)
+
+    print(f"✅ Data saved to {embedding_path} (.pickle)")
+    print(f"DONE! Extracted embeddings and saved all to {embedding_path}.")
+
+
 
 if __name__ == "__main__":
     os.makedirs(DatasetConfig.DATA_DIR, exist_ok=True)
-    extract_and_save_embeddings(PLM_Config.ESM1B, 2)
+    extract_and_save_embeddings(PLM_Config.PROTBERT, 2 )
     #extract_and_save_embeddings_protbert()

@@ -2,11 +2,11 @@ import torch
 import esm
 from tqdm import tqdm
 import gc
-from base_embedder import BaseEmbedder
+from embedding.base_embedder import BaseEmbedder
 
 class ESM1bEmbedder(BaseEmbedder):
     def __init__(self, device=None, use_watti=False):
-        self.__init__(device, use_watti)
+        super().__init__(device=device)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print("Loading ESM1b...")
         """34 layer transformer model with 670M params, trained on Uniref50 Sparse. Returns a tuple of (Model, Alphabet).

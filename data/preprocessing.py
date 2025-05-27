@@ -13,7 +13,7 @@ class CAFA5_Preprocessor:
             return PLM_Config.VALID_AMINO_ACIDS_PROTBERT
     def get_max_seq_len(self):
         if self.plm_name == 'rostlab/prot_bert':
-            return PLM_Config.MAX_SEQ_LEN_PROTBERT
+            return PLM_Config.MAX_SEQ_LEN
     def format_by_PLM(self, sequence):
         if self.plm_name == 'rostlab/prot_bert':
             return self.format_for_protbert(sequence)

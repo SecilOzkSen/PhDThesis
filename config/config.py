@@ -5,8 +5,8 @@ class DatasetConfig:
     DATA_DIR = os.path.join(ROOT_DIR, "dataset")
     SEQ_FILE = os.path.join(DATA_DIR, "Train/train_sequences.fasta")
     TERM_FILE = os.path.join(DATA_DIR, "Train/train_terms.tsv")
-    PROTBERT_EMBEDDING_PATH = os.path.join(DATA_DIR, "protbert_embeddings.npy")
-    ESM1B_EMBEDDING_PATH = os.path.join(DATA_DIR, "esm1b_embeddings.npy")
+    PROTBERT_EMBEDDING_PATH = os.path.join(DATA_DIR, "protbert_embeddings.pkl")
+    ESM1B_EMBEDDING_PATH = os.path.join(DATA_DIR, "esm1b_embeddings.pkl")
     LABELS_PATH = os.path.join(DATA_DIR, "train_labels.npy")
     GO_TERM_PATH = os.path.join(DATA_DIR, "go_terms.npy")
     SEQ_IDS_PATH = os.path.join(DATA_DIR, "seq_ids.npy")
@@ -16,7 +16,7 @@ class PLM_Config:
     PROTBERT = "protbert"
     ESM1B = "esm1b"
     VALID_AMINO_ACIDS_PROTBERT = set("ACDEFGHIKLMNPQRSTVWY")
-    MAX_SEQ_LEN_PROTBERT = 1024
+    MAX_SEQ_LEN = 1024
 
 class ModelConfig:
     # Training hyperparameters
