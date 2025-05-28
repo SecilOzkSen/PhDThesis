@@ -8,11 +8,11 @@ from data.loader import load_cafa5_dataframe
 from embedding.protbert_embedding import ProtBERTEmbedder
 from embedding.esm1b_embedder import ESM1bEmbedder
 from config.config import PLM_Config, ModelConfig
-import traceback
+from tqdm import tqdm
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-def extract_and_save_embeddings(model_name, batch_size, use_watti=False):
+def extract_and_save_embeddings(model_name, batch_size, partition_size=500, use_watti=False, save_dir="partitions"):
     print(torch.cuda.is_available())
     print("Loading sequences and terms....")
     df = load_cafa5_dataframe(model_name=model_name)
@@ -28,43 +28,40 @@ def extract_and_save_embeddings(model_name, batch_size, use_watti=False):
 
     if model_name == PLM_Config.PROTBERT:
         embedder = ProtBERTEmbedder()
-        embedding_path = DatasetConfig.PROTBERT_EMBEDDING_PATH
+    #    embedding_path = DatasetConfig.PROTBERT_EMBEDDING_PATH
     elif model_name == PLM_Config.ESM1B:
         embedder = ESM1bEmbedder(use_watti=use_watti)
-        embedding_path = DatasetConfig.ESM1B_EMBEDDING_PATH
+    #    embedding_path = DatasetConfig.ESM1B_EMBEDDING_PATH
     else:
         raise ValueError("Unsupported Model Type!!")
 
     print("Extracting Embeddings....")
-    embeddings = embedder.get_embeddings(sequences,
-                                         strategy="truncate",
-                                         batch_size=batch_size,
-                                         max_len=PLM_Config.MAX_SEQ_LEN)
-
-    print("Saving Embeddings....")
-    os.makedirs("dataset", exist_ok=True)
-
-    print("Binarizing and saving labels....")
     mlb = MultiLabelBinarizer()
     label_matrix = mlb.fit_transform(labels)
+    for i in tqdm(range(0, len(sequences), partition_size)):
+        sequences_part = sequences[i:i + partition_size]
+        sequence_ids_part = sequence_ids[i:i+partition_size]
+        labels_part = label_matrix[i:i+partition_size, :]
+        embedding_data = []
+        try:
+            embeddings_part = embedder.get_embeddings(sequences_part,
+                                                 strategy="truncate",
+                                                 batch_size=batch_size,
+                                                 max_len=PLM_Config.MAX_SEQ_LEN)
+        except Exception as e:
+            print(f"Hata oluştu: {e}")
+            continue
 
-    print("Saving data as .pickle....")
-    os.makedirs("dataset", exist_ok=True)
-
-    embedding_data = []
-    for seq_id, seq, emb, label in zip(sequence_ids, sequences, embeddings, label_matrix):
-        embedding_data.append({
-            "sequence_id": seq_id,
-            "sequence": seq,
-            "embedding": emb.cpu(),  # save CPU tensor
-            "label": label  # already numpy array
-        })
-
-    with open(embedding_path, "wb") as f:
-        pickle.dump(embedding_data, f)
-
-    print(f"✅ Data saved to {embedding_path} (.pickle)")
-    print(f"DONE! Extracted embeddings and saved all to {embedding_path}.")
+        filename = f"{DatasetConfig.DATA_DIR}/{model_name}_embeddings_part_{i // partition_size}.pkl"
+        for seq_id, seq, emb, label in zip(sequence_ids_part, sequences_part, embeddings_part, labels_part):
+            embedding_data.append({
+                "sequence_id": seq_id,
+                "sequence": seq,
+                "embedding": emb.cpu(),  # save CPU tensor
+                "label": label  # already numpy array
+            })
+        with open(filename, "wb") as f:
+            pickle.dump(embedding_data, f)
 
 
 
