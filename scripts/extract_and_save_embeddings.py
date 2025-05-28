@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-def extract_and_save_embeddings(model_name, batch_size, partition_size=500, use_watti=False, save_dir="partitions"):
+def extract_and_save_embeddings(model_name, batch_size, partition_size=10000, use_watti=False, save_dir="partitions"):
     print(torch.cuda.is_available())
     print("Loading sequences and terms....")
     df = load_cafa5_dataframe(model_name=model_name)
@@ -65,7 +65,8 @@ def extract_and_save_embeddings(model_name, batch_size, partition_size=500, use_
 
 
 
+
 if __name__ == "__main__":
     os.makedirs(DatasetConfig.DATA_DIR, exist_ok=True)
-    extract_and_save_embeddings(PLM_Config.PROTBERT, 2 )
+    extract_and_save_embeddings(PLM_Config.PROTBERT, 5 )
     #extract_and_save_embeddings_protbert()
